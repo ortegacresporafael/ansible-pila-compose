@@ -89,13 +89,27 @@
   - name: Configurando....
     shell:  "{{ item }}"
     with_items:
-       - echo "192.168.100.132    manager" > /etc/hosts
+       - echo "192.168.100.132    manager" >> /etc/hosts
        - echo "192.168.100.127    worker" >> /etc/hosts
        - mkfs.ext4 /dev/sdb
-       - mkdir -p data/brick1/
+       - mkdir -p /data/brick1/
        - echo "/dev/sdb /data/brick1 xfs defaults 0 0" >> /etc/fstab
        - mount -a && mount
-       -
-       -
-       -
-       -
+       - apt-get install -y glusterfs-server
+       - systemctl enable glusterd
+       - systemctl start glusterd
+       - gluster peer probe worker
+       - mkdir -p /data/brick1/gv0
+       
+- name: Configuración glusterfs
+  hosts: all
+  become: true
+  become_user: root
+  tasks:
+  - name: Configurando....
+    shell:  "{{ item }}"
+    with_items:
+       - gluster volume create gv0 replica 2 manager:/data/brick1/gv0 worker:/data/brick1/gv0
+       - gluster volume start gv0
+       - mount -t glusterfs manager:gv0 /mnt   
+ 
