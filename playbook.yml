@@ -93,7 +93,7 @@
        - echo "192.168.100.127    worker" >> /etc/hosts
        - mkfs.ext4 /dev/sdb
        - mkdir -p /data/brick1/
-       - echo "/dev/sdb /data/brick1 xfs defaults 0 0" >> /etc/fstab
+       - echo "/dev/sdb/data/brick1 xfs defaults 0 0" >> /etc/fstab
        - mount -a && mount
        - apt-get install -y glusterfs-server
        - systemctl enable glusterd
@@ -102,7 +102,7 @@
        - mkdir -p /data/brick1/gv0
        
 - name: Configuración glusterfs
-  hosts: all
+  hosts: manager
   become: true
   become_user: root
   tasks:
