@@ -1,4 +1,4 @@
---
+---
 - name: Prueba
   hosts: all
   become: true
