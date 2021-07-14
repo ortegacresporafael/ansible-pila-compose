@@ -1,0 +1,83 @@
+--
+- name: Prueba
+  hosts: all
+  become: true
+  tasks:
+    - name: Instalar docker
+      apt:
+        name: docker
+        state: latest
+
+    - name: Instalar docker-compose
+      apt:
+        name: docker-compose
+        state: latest
+
+    - name: Instalar python3
+      apt:
+        name: python3
+        state: latest
+
+    - name: Crear directorio
+      ansible.builtin.file:
+        path: "/mnt/volumes/{{item}}"
+        state: directory
+        mode: '0777'
+      with_items:
+         - 'db-data'
+         - 'gitlab-config'
+         - 'gitlab-data'
+         - 'gitlab-logs'
+         - 'influx-data'
+         - 'jenkins'
+         - 'registry-auth'
+         - 'registry-data'
+
+
+- name: Creando nuestro cluster con Docker swarm
+  hosts: manager
+  become: true
+  tasks:
+  - name: SWARM
+    shell: "{{ item }}"
+    with_items:
+       - docker swarm init --advertise-addr 192.168.100.132
+       - docker swarm join-token worker | sed '3q;d' | tee /home/rafa/token.sh
+
+- name: Fetch del archivo a la máquina local
+  hosts: manager
+  become: true
+  tasks:
+    - fetch:
+        src: /home/rafa/token.sh
+        dest: /home/rafa/token.sh
+
+- name: Transferencia del archivo al worker
+  hosts: all:!manager
+  become: true
+  tasks:
+    - copy:
+        src: /home/rafa/token.sh
+        dest: /home/rafa/token.sh
+
+- name: Ejecutando el token en el host remoto (worker)
+  hosts: worker
+  become: true
+  become_user: root
+  tasks:
+  - name: Incluyendo nodo como worker...
+    shell: "{{ item }}"
+    with_items:
+       - sh /home/rafa/token.sh/token.sh/192.168.100.132/home/rafa/token.sh
+
+- name: Copiar y desplegar el stack con docker-compose
+  hosts: manager
+  become: true
+  become_user: root
+  tasks:
+  - name: copiando…..
+    shell:  "{{ item }}"
+    with_items:
+       - git clone https://github.com/ortegacresporafael/ansible-pila-compose.git prueba
+       - docker stack deploy --compose-file /home/rafa/prueba/docker-compose.yml stack1
+
